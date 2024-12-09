@@ -1,0 +1,27 @@
+using DAL;
+using DTO;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BLL
+{
+    public class BaoCaoBLL
+    {
+        private NguoiSuDungDAL dal = new NguoiSuDungDAL();
+        public List<BaoCaoThuDTO> tongdanhsachthu()
+        {
+            return dal.tongdanhsachthu();
+        }
+        public List<BaoCaoChiDTO> danhsachchi()
+        {
+            return dal.danhsachchi();
+        }
+        public bool insertphieuthu(BaoCaoChiDTO phieuchi)
+        {
+            return dal.insertphieuthu(phieuchi);
+        }
+    }
+}
