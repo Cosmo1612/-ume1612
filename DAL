@@ -1,0 +1,633 @@
+using System;
+using MySql.Data.MySqlClient;
+using DTO;
+using System.Data;
+
+
+namespace DAL
+{
+    public class NguoiSuDungDAL
+    {
+        private string connectionString = "server=localhost;user=root;database=quan_ly_hoc_phi;port=3306;password=";
+
+        // Phương thức kiểm tra đăng nhập
+        public bool DangNhap(string tenDangNhap, string matKhau)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM nguoi_su_dung WHERE ten_dang_nhap = @TenDangNhap AND mat_khau = @MatKhau";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+                cmd.Parameters.AddWithValue("@MatKhau", matKhau);
+
+                MySqlDataReader reader = cmd.ExecuteReader();
+
+                // Nếu tìm thấy bản ghi, tức là đăng nhập thành công
+                return reader.HasRows;
+            }
+        }
+
+        // Phương thức lấy quyền của người dùng
+        public string LayQuyenNguoiSuDung(string tenDangNhap)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = @"SELECT quyen FROM phan_quyen pq
+                                 JOIN nguoi_su_dung nsd ON pq.id_nguoi_su_dung = nsd.id
+                                 WHERE nsd.ten_dang_nhap = @TenDangNhap";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+
+                return (string)cmd.ExecuteScalar();
+            }
+        }
+        public List<TaiKhoan> LayTatCaNguoiSuDung()
+        {
+            List<TaiKhoan> danhSachNguoiDung = new List<TaiKhoan>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM nguoi_su_dung";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        TaiKhoan taiKhoan = new TaiKhoan
+                        {
+                            Id = reader.GetInt32("id"),
+                            TenDangNhap = reader.GetString("ten_dang_nhap"),
+                            MatKhau = reader.GetString("mat_khau"),
+                            Email = reader.GetString("email"),
+                            VaiTro = reader.GetString("vai_tro"),
+                        };
+                        danhSachNguoiDung.Add(taiKhoan);
+                    }
+                }
+            }
+            return danhSachNguoiDung;
+        }
+        public int ThemNguoiSuDung(TaiKhoan taiKhoan)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO nguoi_su_dung (ten_dang_nhap, mat_khau, vai_tro, email) VALUES (@TenDangNhap, @MatKhau, @VaiTro, @Email)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@TenDangNhap", taiKhoan.TenDangNhap);
+                cmd.Parameters.AddWithValue("@MatKhau", taiKhoan.MatKhau);
+                cmd.Parameters.AddWithValue("@VaiTro", taiKhoan.VaiTro);
+                cmd.Parameters.AddWithValue("@Email", taiKhoan.Email);
+
+                cmd.ExecuteNonQuery();
+
+                // Lấy id vừa được thêm
+                return (int)cmd.LastInsertedId;
+            }
+        }
+
+        public bool ThemQuyen(int idNguoiSuDung, string quyen)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO phan_quyen (id_nguoi_su_dung, quyen) VALUES (@IdNguoiSuDung, @Quyen)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdNguoiSuDung", idNguoiSuDung);
+                cmd.Parameters.AddWithValue("@Quyen", quyen);
+
+                return cmd.ExecuteNonQuery() > 0;
+            }
+        }
+        public bool CapNhatNguoiSuDung(TaiKhoan taiKhoan)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "UPDATE nguoi_su_dung SET ten_dang_nhap = @TenDangNhap, mat_khau = @MatKhau, vai_tro = @VaiTro, email = @Email WHERE id = @Id";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@TenDangNhap", taiKhoan.TenDangNhap);
+                cmd.Parameters.AddWithValue("@MatKhau", taiKhoan.MatKhau);
+                cmd.Parameters.AddWithValue("@VaiTro", taiKhoan.VaiTro);
+                cmd.Parameters.AddWithValue("@Email", taiKhoan.Email);
+                cmd.Parameters.AddWithValue("@Id", taiKhoan.Id);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu cập nhật thành công
+            }
+        }
+
+        public bool CapNhatQuyen(int idNguoiSuDung, string quyen)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "UPDATE phan_quyen SET quyen = @Quyen WHERE id_nguoi_su_dung = @IdNguoiSuDung";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Quyen", quyen);
+                cmd.Parameters.AddWithValue("@IdNguoiSuDung", idNguoiSuDung);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu cập nhật thành công
+            }
+        }
+        public bool XoaNguoiSuDung(int idNguoiSuDung)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                // Xóa quyền trước khi xóa người dùng
+                string queryDeleteQuyen = "DELETE FROM phan_quyen WHERE id_nguoi_su_dung = @IdNguoiSuDung";
+                MySqlCommand cmdDeleteQuyen = new MySqlCommand(queryDeleteQuyen, conn);
+                cmdDeleteQuyen.Parameters.AddWithValue("@IdNguoiSuDung", idNguoiSuDung);
+                cmdDeleteQuyen.ExecuteNonQuery();
+
+                // Sau đó xóa người dùng
+                string queryDeleteNguoiSuDung = "DELETE FROM nguoi_su_dung WHERE id = @IdNguoiSuDung";
+                MySqlCommand cmdDeleteNguoiSuDung = new MySqlCommand(queryDeleteNguoiSuDung, conn);
+                cmdDeleteNguoiSuDung.Parameters.AddWithValue("@IdNguoiSuDung", idNguoiSuDung);
+
+                return cmdDeleteNguoiSuDung.ExecuteNonQuery() > 0; // Trả về true nếu xóa thành công
+            }
+        }
+        public TaiKhoan LayThongTinNguoiDung(string tenDangNhap)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT id, ten_dang_nhap,mat_khau, email, vai_tro FROM nguoi_su_dung WHERE ten_dang_nhap = @TenDangNhap";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@TenDangNhap", tenDangNhap);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return new TaiKhoan
+                        {
+                            Id = reader.GetInt32("id"),
+                            TenDangNhap = reader.GetString("ten_dang_nhap"),
+                            MatKhau = reader.GetString("mat_khau"),
+                            Email = reader.GetString("email"),
+                            VaiTro = reader.GetString("vai_tro"),
+                        };
+                    }
+                }
+            }
+            return null; // Trả về null nếu không tìm thấy người dùng
+        }
+        // xử lý data học viên
+        public SoYeuLL laythongtinhocvien(int mhv)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM hoc_vien WHERE id = @mhv";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@mhv", mhv);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return new DTO.SoYeuLL
+                        {
+                            Id = reader.GetInt32("id"),
+                            HoTen = reader.GetString("ho_ten"),
+                            NgaySinh = reader.GetDateTime("ngay_sinh"),
+                            GioiTinh = reader.GetString("gioi_tinh"),
+                            DiaChi = reader.GetString("dia_chi"),
+                            DienThoai = reader.GetString("so_dien_thoai"),
+                            Email = reader.GetString("email"),
+                            NgayNhapHoc = reader.GetDateTime("ngay_nhap_hoc"),
+                            MaChuyenNganh = reader.GetInt32("ma_chuyen_nganh"),
+                            MaHeDaoTao = reader.GetInt32("ma_he_dao_tao"),
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+        public List<SoYeuLL> laydanhsachhocvien()
+        {
+            List<SoYeuLL> danhsachhv = new List<SoYeuLL>();
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM hoc_vien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        SoYeuLL hocvien = new SoYeuLL
+                        {
+                            Id = reader.GetInt32("id"),
+                            HoTen = reader.GetString("ho_ten"),
+                            NgaySinh = reader.GetDateTime("ngay_sinh"),
+                            GioiTinh = reader.GetString("gioi_tinh"),
+                            DiaChi = reader.GetString("dia_chi"),
+                            DienThoai = reader.GetString("so_dien_thoai"),
+                            Email = reader.GetString("email"),
+                            NgayNhapHoc = reader.GetDateTime("ngay_nhap_hoc"),
+                            MaChuyenNganh = reader.GetInt32("ma_chuyen_nganh"),
+                            MaHeDaoTao = reader.GetInt32("ma_he_dao_tao"),
+                        };
+                        danhsachhv.Add(hocvien);
+                    }
+                }
+            }
+            return danhsachhv;
+        }
+        public bool UpdateHocVien(SoYeuLL hocVien)
+        {
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = @"UPDATE hoc_vien
+                                 SET ho_ten = @ho_ten,
+                                     ngay_sinh = @ngay_sinh,
+                                     gioi_tinh = @gioi_tinh,
+                                     dia_chi = @dia_chi,
+                                     so_dien_thoai = @so_dien_thoai,
+                                     email = @email,
+                                     ngay_nhap_hoc = @ngay_nhap_hoc,
+                                     ma_chuyen_nganh = @ma_chuyen_nganh,
+                                     ma_he_dao_tao = @ma_he_dao_tao
+                                 WHERE id = @id";
+
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", hocVien.Id);
+                    cmd.Parameters.AddWithValue("@ho_ten", hocVien.HoTen);
+                    cmd.Parameters.AddWithValue("@ngay_sinh", hocVien.NgaySinh);
+                    cmd.Parameters.AddWithValue("@gioi_tinh", hocVien.GioiTinh);
+                    cmd.Parameters.AddWithValue("@dia_chi", hocVien.DiaChi);
+                    cmd.Parameters.AddWithValue("@so_dien_thoai", hocVien.DienThoai);
+                    cmd.Parameters.AddWithValue("@email", hocVien.Email);
+                    cmd.Parameters.AddWithValue("@ngay_nhap_hoc", hocVien.NgayNhapHoc);
+                    cmd.Parameters.AddWithValue("@ma_chuyen_nganh", hocVien.MaChuyenNganh);
+                    cmd.Parameters.AddWithValue("@ma_he_dao_tao", hocVien.MaHeDaoTao);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+        public bool XoaToanBoLuanVanByHocVienId(int idHocVien)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "DELETE FROM mon_hoc WHERE id_hoc_vien = @IdHocVien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu có ít nhất một dòng bị xóa
+            }
+        }
+        // xử lý dữ liệu môn học mà học viên đã đăng ký 
+        public List<MonHocDTOcs> LayLuanVanTheoHocVien(int idHocVien)
+        {
+            List<MonHocDTOcs> luanVanList = new List<MonHocDTOcs>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM mon_hoc WHERE id_hoc_vien = @IdHocVien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        MonHocDTOcs luanVan = new MonHocDTOcs
+                        {
+                            Id = reader.GetInt32("id"),
+                            IdHocVien = reader.GetInt32("id_hoc_vien"),
+                            MonHoc = reader.GetString("ten_mon_hoc"),
+                            SoTinChi = reader.GetInt32("so_tin_chi"),
+                            SoTien = reader.GetDecimal("so_tien"),
+                            NgayThanhToan = reader.GetDateTime("ngay_thanh_toan")
+                        };
+                        luanVanList.Add(luanVan);
+                    }
+                }
+            }
+            return luanVanList;
+        }
+        public bool InsertHocVien(SoYeuLL hocVien)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = @"INSERT INTO hoc_vien (id,ho_ten, ngay_sinh, gioi_tinh, dia_chi, so_dien_thoai, email, ngay_nhap_hoc, ma_chuyen_nganh, ma_he_dao_tao)
+                                 VALUES (@idhocvien,@ho_ten, @ngay_sinh, @gioi_tinh, @dia_chi, @so_dien_thoai, @email, @ngay_nhap_hoc, @ma_chuyen_nganh, @ma_he_dao_tao)";
+
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("idhocvien", hocVien.Id);
+                    cmd.Parameters.AddWithValue("@ho_ten", hocVien.HoTen);
+                    cmd.Parameters.AddWithValue("@ngay_sinh", hocVien.NgaySinh);
+                    cmd.Parameters.AddWithValue("@gioi_tinh", hocVien.GioiTinh);
+                    cmd.Parameters.AddWithValue("@dia_chi", hocVien.DiaChi);
+                    cmd.Parameters.AddWithValue("@so_dien_thoai", hocVien.DienThoai);
+                    cmd.Parameters.AddWithValue("@email", hocVien.Email);
+                    cmd.Parameters.AddWithValue("@ngay_nhap_hoc", hocVien.NgayNhapHoc);
+                    cmd.Parameters.AddWithValue("@ma_chuyen_nganh", hocVien.MaChuyenNganh);
+                    cmd.Parameters.AddWithValue("@ma_he_dao_tao", hocVien.MaHeDaoTao);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+        public bool DeleteHocVien(int idHocVien)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "DELETE FROM hoc_vien WHERE id = @id";
+
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", idHocVien);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+        public List<MonHocDTOcs> LayLuanVan()
+        {
+            List<MonHocDTOcs> danhsachluanvan = new List<MonHocDTOcs>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM mon_hoc";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        MonHocDTOcs luanvan = new MonHocDTOcs
+                        {
+                            Id = reader.GetInt32("id"),
+                            IdHocVien = reader.GetInt32("id_hoc_vien"),
+                            MonHoc = reader.GetString("ten_mon_hoc"),
+                            SoTinChi = reader.GetInt32("so_tin_chi"),
+                            SoTien = reader.GetDecimal("so_tien"),
+                            NgayThanhToan = reader.GetDateTime("ngay_thanh_toan"),
+                        };
+                        danhsachluanvan.Add(luanvan);
+                    }
+                }
+            }
+            return danhsachluanvan;
+        }
+        public bool XoaLuanVan(int idLuanVan)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "DELETE FROM mon_hoc WHERE id = @IdLuanVan";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdLuanVan", idLuanVan);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu xóa thành công
+            }
+        }
+        public DataTable GetLuanVanByHocVienId(int idHocVien)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM mon_hoc WHERE id_hoc_vien = @IdHocVien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+
+                MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                adapter.Fill(dt);
+                return dt;
+            }
+        }
+        public void InsertLuanVanLuanAn(MonHocDTOcs luanVan)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO mon_hoc (id_hoc_vien, ten_mon_hoc, so_tin_chi, ngay_thanh_toan) VALUES (@IdHocVien, @TenLuanVan, @SoTinChi, @NgayThanhToan)";
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@IdHocVien", luanVan.IdHocVien);
+                    cmd.Parameters.AddWithValue("@TenLuanVan", luanVan.MonHoc);
+                    cmd.Parameters.AddWithValue("@SoTinChi", luanVan.SoTinChi);
+                    cmd.Parameters.AddWithValue("@NgayThanhToan", luanVan.NgayThanhToan);
+
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected == 0)
+                    {
+                        throw new Exception("Không có dữ liệu nào được thêm vào.");
+                    }
+                }
+            }
+        }
+
+        // xử lý dữ liệu thanh toán
+        public decimal TinhTongTienLuanVan(int idHocVien)
+        {
+            decimal tongTien = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT SUM(so_tien) FROM mon_hoc WHERE id_hoc_vien = @IdHocVien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+
+                object result = cmd.ExecuteScalar();
+                if (result != DBNull.Value)
+                {
+                    tongTien = Convert.ToDecimal(result);
+                }
+            }
+            return tongTien;
+        }
+        public bool ThemLichSuThuPhi(int idHocVien, decimal soTien, DateTime ngayNop, string noiDung = "Đã thanh toán thành công")
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO lich_su_thu_phi (id_hoc_vien, so_tien, ngay_nop, noi_dung) VALUES (@IdHocVien, @SoTien, @NgayNop, @NoiDung)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+                cmd.Parameters.AddWithValue("@SoTien", soTien);
+                cmd.Parameters.AddWithValue("@NgayNop", ngayNop);
+                cmd.Parameters.AddWithValue("@NoiDung", noiDung);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu thêm thành công
+            }
+        }
+        public List<LichSuThuPhiDTO> GetLichSuThuPhiByIdHocVien(int idHocVien)
+        {
+            List<LichSuThuPhiDTO> lichSuList = new List<LichSuThuPhiDTO>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM lich_su_thu_phi WHERE id_hoc_vien = @IdHocVien";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", idHocVien);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        LichSuThuPhiDTO lichSu = new LichSuThuPhiDTO
+                        {
+                            Id = reader.GetInt32("id"),
+                            IdHocVien = reader.GetInt32("id_hoc_vien"),
+                            SoTien = reader.GetDecimal("so_tien"),
+                            NgayNop = reader.GetDateTime("ngay_nop"),
+                            NoiDung = reader.GetString("noi_dung")
+                        };
+                        lichSuList.Add(lichSu);
+                    }
+                }
+            }
+            return lichSuList;
+        }
+        public bool InsertBienLai(BienLaiDTO bienLai)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO bien_lai (id_hoc_vien, so_bien_lai, ngay_phat_hanh, so_tien) VALUES (@IdHocVien, @SoBienLai, @NgayPhatHanh, @SoTien)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@IdHocVien", bienLai.IdHocVien);
+                cmd.Parameters.AddWithValue("@SoBienLai", bienLai.SoBienLai);
+                cmd.Parameters.AddWithValue("@NgayPhatHanh", bienLai.NgayPhatHanh);
+                cmd.Parameters.AddWithValue("@SoTien", bienLai.SoTien);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu thêm thành công
+            }
+        }
+        // lấy danh sách học viên đã đóng phí 
+        public bool ThemThuHocPhi(int idHocVien, decimal soTien, DateTime ngayThu, string noiDung)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO thu_hoc_phi (id_hoc_vien, so_tien, ngay_thu, noi_dung) VALUES (@idHocVien, @soTien, @ngayThu, @noiDung)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@idHocVien", idHocVien);
+                cmd.Parameters.AddWithValue("@soTien", soTien);
+                cmd.Parameters.AddWithValue("@ngayThu", ngayThu);
+                cmd.Parameters.AddWithValue("@noiDung", noiDung);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu có bản ghi được thêm vào
+            }
+        }
+
+        public List<LichSuThuPhiDTO> Laydanhsachthu()
+        {
+            List<LichSuThuPhiDTO> danhsachthu = new List<LichSuThuPhiDTO>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM lich_su_thu_phi";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        LichSuThuPhiDTO lichsu = new LichSuThuPhiDTO
+                        {
+                            Id = reader.GetInt32("id"),
+                            IdHocVien = reader.GetInt32("id_hoc_vien"),
+                            SoTien = reader.GetDecimal("so_tien"),
+                            NgayNop = reader.GetDateTime("ngay_nop"),
+                            NoiDung = reader.GetString("noi_dung"),
+                        };
+                        danhsachthu.Add(lichsu);
+                    }
+                }
+            }
+            return danhsachthu;
+        }
+// Bao cao thu chi
+        public List<BaoCaoThuDTO> tongdanhsachthu()
+        {
+            List<BaoCaoThuDTO> danhsach = new List<BaoCaoThuDTO>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM bao_cao_thu";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        BaoCaoThuDTO baocao = new BaoCaoThuDTO
+                        {
+                            Id = reader.GetInt32("id"),
+                            TongThu = reader.GetDecimal("tong_thu"),
+                            NgayThu = reader.GetDateTime("ngay_thu"),
+                            NoiDung = reader.GetString("noi_dung"),
+                        };
+                        danhsach.Add(baocao);
+                    }
+                }
+            }
+            return danhsach;
+        }
+        public List<BaoCaoChiDTO> danhsachchi()
+        {
+            List<BaoCaoChiDTO> danhsach = new List<BaoCaoChiDTO>();
+
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM bao_cao_chi";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        BaoCaoChiDTO baocao = new BaoCaoChiDTO
+                        {
+                            Id = reader.GetInt32("id"),
+                            NoiDung = reader.GetString("noi_dung_chi"),
+                            SoTienChi = reader.GetDecimal("so_tien_chi")
+                        };
+                        danhsach.Add(baocao);
+                    }
+                }
+            }
+            return danhsach;
+        }
+        public bool insertphieuthu(BaoCaoChiDTO phieuchi)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "INSERT INTO bao_cao_chi ( noi_dung_chi, so_tien_chi) VALUES (@NoiDung, @SoTien)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@NoiDung", phieuchi.NoiDung);
+                cmd.Parameters.AddWithValue("@SoTien", phieuchi.SoTienChi);
+
+                return cmd.ExecuteNonQuery() > 0; // Trả về true nếu thêm thành công
+            }
+        }
+    }
+} 
+    
