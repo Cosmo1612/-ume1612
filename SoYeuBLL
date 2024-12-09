@@ -1,0 +1,35 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using DAL;
+using DTO;
+
+namespace BLL
+{
+    public class HocVienBLL
+    {
+        private NguoiSuDungDAL hocvienDAL = new NguoiSuDungDAL();
+        public SoYeuLL laythongtinhocvien(int IdDangNhap)
+        {
+            return  hocvienDAL.laythongtinhocvien(IdDangNhap);
+        }
+        public bool UpdateHocVien(SoYeuLL hocVien)
+        {
+            return hocvienDAL.UpdateHocVien(hocVien);
+        }
+        public List<SoYeuLL> laydanhsachhocvien()
+        {
+            return hocvienDAL.laydanhsachhocvien();
+        }
+        public bool InsertHocVien(SoYeuLL hocVien)
+        {
+            return hocvienDAL.InsertHocVien(hocVien);
+        }
+        public bool DeleteHocVien(int idHocVien)
+        {
+            return hocvienDAL.DeleteHocVien(idHocVien);
+        }
+    }
+}
