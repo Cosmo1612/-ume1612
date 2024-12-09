@@ -1,0 +1,61 @@
+using System;
+using DAL;
+using DTO;
+
+namespace BLL
+{
+    public class NguoiSuDungBLL
+    {
+        private NguoiSuDungDAL nguoiSuDungDAL = new NguoiSuDungDAL();
+
+        // Phương thức xử lý đăng nhập
+        public bool DangNhap(string tenDangNhap, string matKhau)
+        {
+            if (string.IsNullOrEmpty(tenDangNhap) || string.IsNullOrEmpty(matKhau))
+            {
+                throw new ArgumentException("Tên đăng nhập và mật khẩu không được để trống");
+            }
+
+            return nguoiSuDungDAL.DangNhap(tenDangNhap, matKhau);
+        }
+
+        // Phương thức lấy quyền của người dùng
+        public string LayQuyen(string tenDangNhap)
+        {
+            return nguoiSuDungDAL.LayQuyenNguoiSuDung(tenDangNhap);
+        }
+        public TaiKhoan LayThongTinNguoiDung(string tenDangNhap)
+        {
+            return nguoiSuDungDAL.LayThongTinNguoiDung(tenDangNhap);
+        }
+        public List<TaiKhoan> LayTatCaNguoiSuDung()
+        {
+            return nguoiSuDungDAL.LayTatCaNguoiSuDung();
+        }
+        public bool ThemTaiKhoanVaQuyen(TaiKhoan taiKhoan, string quyen)
+        {
+            int idNguoiSuDung = nguoiSuDungDAL.ThemNguoiSuDung(taiKhoan);
+            if (idNguoiSuDung > 0)
+            {
+                return nguoiSuDungDAL.ThemQuyen(idNguoiSuDung, quyen);
+            }
+            return false;
+        }
+        public bool CapNhatTaiKhoanVaQuyen(TaiKhoan taiKhoan, string quyen)
+        {
+            bool capNhatNguoiSuDungThanhCong = nguoiSuDungDAL.CapNhatNguoiSuDung(taiKhoan);
+            bool capNhatQuyenThanhCong = nguoiSuDungDAL.CapNhatQuyen(taiKhoan.Id, quyen);
+
+            return capNhatNguoiSuDungThanhCong && capNhatQuyenThanhCong;
+        }
+        public bool XoaTaiKhoan(int idNguoiSuDung)
+        {
+            return nguoiSuDungDAL.XoaNguoiSuDung(idNguoiSuDung);
+        }
+        public bool capnhatnguoidung(TaiKhoan taiKhoan)
+        {
+            bool capNhatNguoiSuDungThanhCong = nguoiSuDungDAL.CapNhatNguoiSuDung(taiKhoan);
+            return capNhatNguoiSuDungThanhCong;
+        }
+    }
+}
