@@ -1,0 +1,66 @@
+using DAL;
+using DTO;
+using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BLL
+{
+    public class MonHocBLL
+    {
+        private NguoiSuDungDAL dal = new NguoiSuDungDAL();
+
+        public void InsertFromExcel(string filePath)
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial; // Thiết lập giấy phép
+
+            FileInfo fileInfo = new FileInfo(filePath);
+            using (ExcelPackage package = new ExcelPackage(fileInfo))
+            {
+                ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+                int rowCount = worksheet.Dimension.Rows;
+
+                for (int row = 2; row <= rowCount; row++) // Bắt đầu từ hàng 2 để bỏ qua tiêu đề
+                {
+                    MonHocDTOcs luanVan = new MonHocDTOcs
+                    {
+                        IdHocVien = int.Parse(worksheet.Cells[row, 1].Text),
+                        MonHoc = worksheet.Cells[row, 2].Text,
+                        SoTinChi = int.Parse(worksheet.Cells[row, 3].Text),
+                        NgayThanhToan = DateTime.Parse(worksheet.Cells[row, 4].Text)
+                    };
+
+                     dal.InsertLuanVanLuanAn(luanVan);
+                }
+            }
+        }
+        public List<MonHocDTOcs> LayLuanVan()
+        {
+            return dal.LayLuanVan();
+        }
+        public DataTable GetLuanVanByHocVienId(int idHocVien)
+        {
+            return dal.GetLuanVanByHocVienId(idHocVien);
+        }
+        public List<MonHocDTOcs> LayLuanVanTheoHocVien(int idHocVien)
+        {
+            return dal.LayLuanVanTheoHocVien(idHocVien);
+        }
+        public decimal TinhTongTienLuanVan(int idHocVien)
+        {
+            return dal.TinhTongTienLuanVan(idHocVien);
+        }
+        public bool XoaLuanVan(int idLuanVan)
+        {
+            return dal.XoaLuanVan(idLuanVan);
+        }
+        public bool XoaToanBoLuanVan(int idHocVien)
+        {
+            return dal.XoaToanBoLuanVanByHocVienId(idHocVien);
+        }
+    }
+}
